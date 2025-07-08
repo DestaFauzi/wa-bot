@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bot Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .header .rocket {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        
+        .status.connecting {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+        
+        .status.ready {
+            background: #00b894;
+            color: white;
+        }
+        
+        .status.error {
+            background: #d63031;
+            color: white;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .card .icon {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        .form-group select,
+        .form-group textarea,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group select:focus,
+        .form-group textarea:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+        }
+        
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        .refresh-btn {
+            background: #00b894;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .refresh-btn:hover {
+            background: #00a085;
+        }
+        
+        .qr-container {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .qr-code {
+            max-width: 200px;
+            height: auto;
+            margin: 20px auto;
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="rocket">🚀</span>WhatsApp Bot Dashboard</h1>
+            <div id="statusIndicator" class="status connecting">
+                <span id="statusText">🔴 Connecting...</span>
+                <button class="refresh-btn" onclick="checkStatus()">Refresh</button>
+                <button class="refresh-btn" onclick="restartClient()" style="background: #e17055;">Restart</button>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h2><span class="icon">📤</span>Kirim Pesan</h2>
+                <div id="sendError" class="error-message" style="display: none;"></div>
+                <div id="sendSuccess" class="success-message" style="display: none;"></div>
+                
+                <div class="form-group">
+                    <label for="sendGroupSelect">Pilih Grup:</label>
+                    <select id="sendGroupSelect">
+                        <option value="">Pilih grup...</option>
+                    </select>
+                </br>
+                    <button class="refresh-btn" onclick="loadGroups()">Refresh Groups</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="sendMessage">Pesan:</label>
+                    <textarea id="sendMessage" placeholder="Tulis pesan Anda..."></textarea>
+                </div>
+
+                <button class="btn" onclick="sendMessage()" id="sendBtn">
+                    KIRIM PESAN
+                </button>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">⏰</span>Jadwal Pesan</h2>
+                <div id="scheduleError" class="error-message" style="display: none;"></div>
+                <div id="scheduleSuccess" class="success-message" style="display: none;"></div>
+                
+                <div class="form-group">
+                    <label for="scheduleGroupSelect">Pilih Grup:</label>
+                    <select id="scheduleGroupSelect">
+                        <option value="">Pilih grup...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="scheduleMessage">Pesan:</label>
+                    <textarea id="scheduleMessage" placeholder="Tulis pesan terjadwal..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="scheduleTime">Waktu Kirim:</label>
+                    <input type="datetime-local" id="scheduleTime">
+                </div>
+
+                <button class="btn" onclick="scheduleMessage()" id="scheduleBtn">
+                    JADWALKAN PESAN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isReady = false;
+        let groups = [];
+        let statusCheckInterval;
+
+        // Check status immediately and set interval
+        checkStatus();
+        statusCheckInterval = setInterval(checkStatus, 3000); // Check every 3 seconds
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const statusIndicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                
+                if (data.isReady) {
+                    isReady = true;
+                    statusIndicator.className = 'status ready';
+                    statusText.textContent = '🟢 Connected & Ready';
+                    
+                    // Load groups automatically when ready
+                    loadGroups();
+                    
+                    // Clear interval when ready
+                    if (statusCheckInterval) {
+                        clearInterval(statusCheckInterval);
+                        statusCheckInterval = null;
+                    }
+                } else if (data.qrCode) {
+                    isReady = false;
+                    statusIndicator.className = 'status connecting';
+                    statusText.innerHTML = '🟡 Scan QR Code in Terminal';
+                } else if (data.isInitializing) {
+                    isReady = false;
+                    statusIndicator.className = 'status connecting';
+                    statusText.textContent = '🟡 Initializing...';
+                } else {
+                    isReady = false;
+                    statusIndicator.className = 'status error';
+                    statusText.textContent = '🔴 Not Connected';
+                }
+                
+                // Update button states
+                updateButtonStates();
+                
+            } catch (error) {
+                console.error('Error checking status:', error);
+                const statusIndicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                statusIndicator.className = 'status error';
+                statusText.textContent = '🔴 Connection Error';
+                
+                // Restart interval if there was an error
+                if (!statusCheckInterval) {
+                    statusCheckInterval = setInterval(checkStatus, 3000);
+                }
+            }
+        }
+
+        async function loadGroups() {
+            if (!isReady) {
+                showError('sendError', 'WhatsApp client is not ready. Please wait or scan QR code first.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/groups');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    groups = data;
+                    populateGroupSelects();
+                    hideError('sendError');
+                } else {
+                    throw new Error(data.error || 'Failed to load groups');
+                }
+            } catch (error) {
+                console.error('Error loading groups:', error);
+                showError('sendError', 'Error loading groups: ' + error.message);
+            }
+        }
+
+        function populateGroupSelects() {
+            const sendSelect = document.getElementById('sendGroupSelect');
+            const scheduleSelect = document.getElementById('scheduleGroupSelect');
+            
+            // Clear existing options
+            sendSelect.innerHTML = '<option value="">Pilih grup...</option>';
+            scheduleSelect.innerHTML = '<option value="">Pilih grup...</option>';
+            
+            // Add group options
+            groups.forEach(group => {
+                const option1 = document.createElement('option');
+                option1.value = group.id;
+                option1.textContent = `${group.name} (${group.participants} members)`;
+                sendSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = group.id;
+                option2.textContent = `${group.name} (${group.participants} members)`;
+                scheduleSelect.appendChild(option2);
+            });
+        }
+
+        async function sendMessage() {
+            const groupId = document.getElementById('sendGroupSelect').value;
+            const message = document.getElementById('sendMessage').value;
+            
+            if (!groupId || !message) {
+                showError('sendError', 'Please select a group and enter a message');
+                return;
+            }
+            
+            if (!isReady) {
+                showError('sendError', 'WhatsApp client is not ready');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        groupId: groupId,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('sendSuccess', 'Message sent successfully!');
+                    document.getElementById('sendMessage').value = '';
+                    hideError('sendError');
+                } else {
+                    showError('sendError', data.error || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showError('sendError', 'Error sending message: ' + error.message);
+            }
+        }
+
+        async function scheduleMessage() {
+            const groupId = document.getElementById('scheduleGroupSelect').value;
+            const message = document.getElementById('scheduleMessage').value;
+            const scheduleTime = document.getElementById('scheduleTime').value;
+            
+            if (!groupId || !message || !scheduleTime) {
+                showError('scheduleError', 'Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/schedule-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        groupId: groupId,
+                        message: message,
+                        scheduleTime: scheduleTime
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('scheduleSuccess', 'Message scheduled successfully!');
+                    document.getElementById('scheduleMessage').value = '';
+                    document.getElementById('scheduleTime').value = '';
+                    hideError('scheduleError');
+                } else {
+                    showError('scheduleError', data.error || 'Failed to schedule message');
+                }
+            } catch (error) {
+                console.error('Error scheduling message:', error);
+                showError('scheduleError', 'Error scheduling message: ' + error.message);
+            }
+        }
+
+        async function restartClient() {
+            try {
+                const response = await fetch('/api/restart', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    isReady = false;
+                    groups = [];
+                    populateGroupSelects();
+                    
+                    // Restart status checking
+                    if (statusCheckInterval) {
+                        clearInterval(statusCheckInterval);
+                    }
+                    statusCheckInterval = setInterval(checkStatus, 3000);
+                    
+                    showSuccess('sendSuccess', 'WhatsApp client restarted. Please wait for reconnection...');
+                } else {
+                    showError('sendError', data.error || 'Failed to restart client');
+                }
+            } catch (error) {
+                console.error('Error restarting client:', error);
+                showError('sendError', 'Error restarting client: ' + error.message);
+            }
+        }
+
+        function updateButtonStates() {
+            const sendBtn = document.getElementById('sendBtn');
+            const scheduleBtn = document.getElementById('scheduleBtn');
+            
+            sendBtn.disabled = !isReady;
+            scheduleBtn.disabled = !isReady;
+        }
+
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideError(elementId) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.style.display = 'none';
+        }
+
+        function showSuccess(elementId, message) {
+            const successElement = document.getElementById(elementId);
+            successElement.textContent = message;
+            successElement.style.display = 'block';
+            
+            // Hide success message after 5 seconds
+            setTimeout(() => {
+                successElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Set minimum datetime to current time
+        document.getElementById('scheduleTime').min = new Date().toISOString().slice(0, 16);
+    </script>
+</body>
+</html>
