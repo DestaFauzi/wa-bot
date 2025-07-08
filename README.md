@@ -29,6 +29,8 @@ cd whatsapp-scheduler
 2. **Install dependencies:**
 ```bash
 npm install
+npm install whatsapp-web.js@1.19.5
+npm install puppeteer@19.11.1
 ```
 
 3. **Buat folder public dan file HTML:**
